@@ -1,20 +1,11 @@
-# On commence avec une image Maven pour compiler le code
-FROM maven:3.8.4-openjdk-17 AS build
+FROM gradle:8-jdk17 AS build
+WORKDIR /app
+COPY build.gradle settings.gradle ./
+COPY src ./src
+RUN gradle bootJar -x test
 
-# On copie tout notre projet dans l'image
-COPY . .
-
-# On compile l'application (on saute les tests pour éviter les erreurs)
-RUN mvn clean package -DskipTests
-
-# On crée une nouvelle image plus légère avec seulement le JDK pour exécuter l'application
-FROM openjdk:17-jdk-slim
-
-# On copie le fichier JAR généré depuis l'étape de build
-COPY --from=build /target/*.jar app.jar
-
-# On expose le port sur lequel l'application tourne
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8080
-
-# Commande pour lancer l'application
-ENTRYPOINT ["java", "-jar", "/app.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
